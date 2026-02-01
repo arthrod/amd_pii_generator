@@ -1,7 +1,4 @@
-from __future__ import annotations
-
 import asyncio
-import contextlib
 import datetime
 import json
 import random
@@ -11,7 +8,6 @@ import traceback
 import uuid
 from enum import Enum
 from pathlib import Path
-from typing import NoReturn
 
 import aiofiles
 import aiohttp
@@ -59,7 +55,7 @@ DEFAULT_TEMPERATURE = 1
 
 # ===== PII Types and Constants =====
 class PIIType(str, Enum):
-    """Types of Personally Identifiable Information (PII)."""
+    """Types of Personally Identifiable Information (PII)"""
 
     AGE = 'age'  # "Idade"
     CEP = 'cep'  # "CEP"
@@ -859,8 +855,9 @@ async def _handle_worker_error(coro, worker_id):
         raise
 
 
-def weighted_pii_selection(num_types: int, available_keys: list[str] | None = None) -> list[str]:
-    """Select PII types with probability proportional to their real-world frequency.
+def weighted_pii_selection(num_types: int, available_keys: list[str] = None) -> list[str]:
+    """
+    Select PII types with probability proportional to their real-world frequency.
 
     Args:
         num_types: Number of PII types to select
@@ -893,10 +890,11 @@ def weighted_pii_selection(num_types: int, available_keys: list[str] | None = No
             weights=list(filtered_weights.values()),
             k=min(num_types, len(filtered_weights)),
         )
-    # Original behavior
-    return random.choices(
-        population=list(PII_TYPE_WEIGHTS.keys()), weights=list(PII_TYPE_WEIGHTS.values()), k=num_types
-    )
+    else:
+        # Original behavior
+        return random.choices(
+            population=list(PII_TYPE_WEIGHTS.keys()), weights=list(PII_TYPE_WEIGHTS.values()), k=num_types
+        )
 
 
 # Prompt template for generating PII text
@@ -1022,7 +1020,8 @@ PROMPT_TEMPLATE_BASIC = SIMPLIFIED_PROMPT_TEMPLATE
 
 # Simple class for PII markers with position information
 class PIIMarker:
-    """Represents a marker for Personally Identifiable Information (PII) with position information.
+    """
+    Represents a marker for Personally Identifiable Information (PII) with position information.
 
     Attributes:
         pii_type: Type of the PII (e.g., "PERSON_NAME", "EMAIL", etc.)
@@ -1031,14 +1030,14 @@ class PIIMarker:
         text: The actual PII text (optional)
     """
 
-    def __init__(self, pii_type: str, start: int, end: int, text: str | None = None) -> None:
+    def __init__(self, pii_type: str, start: int, end: int, text: str | None = None):
         self.pii_type = pii_type
         self.start = start
         self.end = end
         self.text = text
 
     def to_dict(self) -> dict:
-        """Convert the PIIMarker to a dictionary for serialization."""
+        """Convert the PIIMarker to a dictionary for serialization"""
         result = {'pii_type': self.pii_type, 'start': self.start, 'end': self.end}
         if self.text:
             result['text'] = self.text
@@ -1047,7 +1046,8 @@ class PIIMarker:
 
 # Simple data class for sample data
 class SampleData:
-    """Represents sample data with text and PII markers.
+    """
+    Represents sample data with text and PII markers.
 
     Attributes:
         text: The text containing PII
@@ -1055,7 +1055,7 @@ class SampleData:
         metadata: Additional metadata about the sample
     """
 
-    def __init__(self, text: str, pii_markers: list | None = None, metadata: dict | None = None) -> None:
+    def __init__(self, text: str, pii_markers: list | None = None, metadata: dict | None = None):
         self.text = text
         self.pii_markers = [
             PIIMarker(
@@ -1070,7 +1070,7 @@ class SampleData:
 
 
 class TextoComPII(BaseModel):
-    """Text containing PII information with its types identified."""
+    """Text containing PII information with its types identified"""
 
     texto: str = Field(
         ..., description='Texto contendo informações pessoais sensíveis (PII) de forma natural e contextualizada'
@@ -1079,7 +1079,8 @@ class TextoComPII(BaseModel):
 
 
 class GeradorDeTextoComPII(BaseModel):
-    """Generator output with original and masked versions.
+    """
+    Generator output with original and masked versions.
 
     Example of unmasked vs. masked:
 
@@ -1097,7 +1098,8 @@ def pick_one(items: list[str]) -> str:
 
 
 def select_random_pii_items(sample_line: dict[str, any]) -> dict[str, any]:
-    """Randomly select between min_items and max_items PII items from a sample line.
+    """
+    Randomly select between min_items and max_items PII items from a sample line.
     biasing selection towards items relevant to the provided context and intent.
     Only selects from the allowed list of PII keys according to our rules.
 
@@ -1111,6 +1113,7 @@ def select_random_pii_items(sample_line: dict[str, any]) -> dict[str, any]:
     Returns:
         A dictionary with the selected PII items
     """
+
     # Define the allowed keys according to our rules
     # Note: 'cei' and 'cnpj' are excluded as they are explicitly removed later in the code
     allowed_keys = [
@@ -1184,7 +1187,8 @@ async def generate_random_prompt(
     selected_sample,  # Keep for potential future use or consistency, though not strictly needed now
     selected_pii_items,
 ) -> tuple[str, dict]:  # Now returns both prompt string and metadata
-    """Formats the prompt string using pre-selected scenario elements and PII.
+    """
+    Formats the prompt string using pre-selected scenario elements and PII.
 
     Args:
         selected_sample: Optional sample data to use (singular)
@@ -1390,7 +1394,8 @@ async def generate_random_prompt(
 
 
 async def load_samples_from_jsonl(file_path: str) -> list[dict[str, any]]:
-    """Load sample data from a JSONL file with sophisticated error handling and path resolution.
+    """
+    Load sample data from a JSONL file with sophisticated error handling and path resolution.
 
     This function implements:
     1. Robust path resolution with fallback mechanisms
@@ -1476,7 +1481,8 @@ async def load_samples_from_jsonl(file_path: str) -> list[dict[str, any]]:
 
 
 def generate_random_email(sample_data: dict) -> str:
-    """Generate a random email using name or surnames from sample data.
+    """
+    Generate a random email using name or surnames from sample data.
 
     Args:
         sample_data: Dictionary containing sample data with name and surnames fields
@@ -1581,7 +1587,8 @@ def generate_random_email(sample_data: dict) -> str:
 
 
 def get_random_weighted_samples(sample_corpus: list, min_count: int = 2, max_count: int = 12) -> list:
-    """Selects a SINGLE random sample_line from the sample_corpus.  This now returns a list
+    """
+    Selects a SINGLE random sample_line from the sample_corpus.  This now returns a list
     containing only the selected sample, to maintain compatibility with the
     existing code structure that expects a list.
 
@@ -1607,12 +1614,13 @@ def get_random_weighted_samples(sample_corpus: list, min_count: int = 2, max_cou
 async def worker(
     queue: asyncio.Queue,
     results: list,
-    results_saver: ResultsSaver,
+    results_saver: 'ResultsSaver',
     samples_source: list,
     session: aiohttp.ClientSession,
     easy: int | None = None,
 ) -> None:
-    """Asynchronous worker that processes items from a queue to generate synthetic PII data.
+    """
+    Asynchronous worker that processes items from a queue to generate synthetic PII data.
     Simplified version without masking logic.
     """
     # Initialize metrics tracking
@@ -1871,7 +1879,8 @@ async def process_with_workers(
     batch_size: int = DEFAULT_BATCH_SIZE,
     easy: int | None = None,
 ) -> list[dict[str, any]]:
-    """Orchestrate the processing of multiple generation tasks using a sophisticated worker pool.
+    """
+    Orchestrate the processing of multiple generation tasks using a sophisticated worker pool.
 
     This function implements a high-performance concurrent processing architecture:
     1. Dynamic worker pool sizing based on workload and system capabilities
@@ -1979,7 +1988,7 @@ async def process_with_workers(
             logger.debug(f'Started worker {worker_id + 1}/{worker_count}')
 
         # Monitor progress with periodic status updates
-        async def monitor_progress() -> None:
+        async def monitor_progress():
             while not queue.empty():
                 try:
                     tasks_remaining = queue.qsize()
@@ -2029,8 +2038,10 @@ async def process_with_workers(
             # Clean cancellation of monitor task
             if not monitor_task.done():
                 monitor_task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
+                try:
                     await monitor_task
+                except asyncio.CancelledError:
+                    pass
 
             # Graceful worker termination with proper resource cleanup
             for w in workers:
@@ -2087,7 +2098,8 @@ async def process_with_workers(
 
 
 class ResultsSaver:
-    """Thread-safe asynchronous persistence manager for incremental result serialization.
+    """
+    Thread-safe asynchronous persistence manager for incremental result serialization.
 
     This class implements a sophisticated persistence strategy with:
     - Atomic batch operations using exclusive lock semantics
@@ -2100,8 +2112,9 @@ class ResultsSaver:
     behaviors layered on a reactive persistence framework.
     """
 
-    def __init__(self, output_file: str) -> None:
-        """Initialize the persistence manager with a designated output path.
+    def __init__(self, output_file: str):
+        """
+        Initialize the persistence manager with a designated output path.
 
         Performs preemptive directory creation and establishes an async
         coordination primitive for exclusive writer access.
@@ -2133,7 +2146,8 @@ class ResultsSaver:
             logger.info(f'Initialized empty persistence target: {output_file}')
 
     async def save_batch(self, batch: list[any]) -> None:
-        """Persist a batch of results with transactional semantics.
+        """
+        Persist a batch of results with transactional semantics.
 
         This method implements a sophisticated non-blocking I/O strategy with:
         1. Exclusive resource acquisition via async mutex
@@ -2229,11 +2243,11 @@ class ResultsSaver:
 
                 except Exception as recovery_e:
                     logger.exception(f'Persistence recovery failed: {recovery_e}')
-                    msg = f'Critical persistence failure after recovery attempt: {recovery_e}'
-                    raise OSError(msg) from e
+                    raise OSError(f'Critical persistence failure after recovery attempt: {recovery_e}') from e
 
     async def finalize(self) -> dict[str, any]:
-        """Finalize the persistence session and return operational metrics.
+        """
+        Finalize the persistence session and return operational metrics.
 
         Performs resource cleanup, durability verification, and
         generates comprehensive operational telemetry.
@@ -2277,10 +2291,18 @@ class ResultsSaver:
 async def qwen_gerador_PII(
     session: aiohttp.ClientSession, prompt: str, pii_values_dict: dict[str, str], retry_count: int = 0
 ) -> tuple[str, str]:
-    """Generate PII text using Qwen with xgrammar EBNF for structured output.
-    Returns: (texto_gerado_com_pii, texto_gerado_com_pii) - same text twice for compatibility.
+    """
+    Generate PII text using Qwen with xgrammar EBNF for structured output.
+    Returns: (texto_gerado_com_pii, texto_gerado_com_pii) - same text twice for compatibility
     """
     # Simple EBNF grammar for JSON output with a string value
+    ebnf_grammar = """
+root ::= json_object
+json_object ::= "{" ws "\"texto_gerado_com_pii\"" ws ":" ws json_string ws "}"
+json_string ::= "\"" string_content "\""
+string_content ::= ([^"\\] | "\\" ["\\nrt])*
+ws ::= [ \t\n\r]*
+"""
 
     max_retries = 10
     backoff_factor = 1.5
@@ -2380,16 +2402,16 @@ async def qwen_gerador_PII(
             await asyncio.sleep(min(backoff_factor * (2**retry_count), 8))
             continue
 
-    msg = f'Failed to generate valid content after {max_retries} attempts'
-    raise ValueError(msg)
+    raise ValueError(f'Failed to generate valid content after {max_retries} attempts')
 
 
 async def use_model_to_generate_PII(
     session: aiohttp.ClientSession, prompt: str, pii_values_dict: dict[str, str]
 ) -> tuple[str, str, str]:
-    """Generate PII text using Qwen model with llguidance.
+    """
+    Generate PII text using Qwen model with llguidance.
     Returns: (texto_gerado_com_pii, texto_gerado_com_pii, model_id)
-    Note: Since masking is removed, both text values are the same.
+    Note: Since masking is removed, both text values are the same
     """
     for retry_count in range(10):
         try:
@@ -2403,8 +2425,7 @@ async def use_model_to_generate_PII(
             if retry_count < 9:
                 await asyncio.sleep(min(1.5 * (2**retry_count), 8))
 
-    msg = 'Failed to generate after 10 attempts'
-    raise ValueError(msg)
+    raise ValueError('Failed to generate after 10 attempts')
 
 
 def main(
@@ -2439,7 +2460,8 @@ def main(
         help=f'Shortcut mode: Generate specified number of samples using input/samples.jsonl with default settings (output to outputs/generated_samples.jsonl, input to input/samples.jsonl, pollution enabled at {DEFAULT_POLLUTION_RATE * 100}%, {DEFAULT_NUM_WORKERS} workers), generating with {DEFAULT_MODEL_ID} model.',
     ),
 ) -> None:
-    """Generate synthetic PII data with various pollution options.
+    """
+    Generate synthetic PII data with various pollution options.
 
     This command generates samples of text containing Personally Identifiable Information (PII),
     with options to apply realistic data pollution to simulate real-world data quality issues.
@@ -2456,11 +2478,11 @@ def main(
       130: User interrupted the operation
     """
 
-    def signal_handler(signum, frame) -> NoReturn:
+    def signal_handler(signum, frame):
         logger.warning(f'Received signal {signum}, initiating graceful shutdown...')
         # Raising KeyboardInterrupt is a clean way to break the asyncio loop
         # as we already have a handler for it.
-        raise KeyboardInterrupt
+        raise KeyboardInterrupt()
 
     # Set up signal handlers
     signal.signal(signal.SIGINT, signal_handler)  # For Ctrl+C
